@@ -1,7 +1,7 @@
 """Acceptance script — checks each level in turn.
 
     python verify.py            # all (R1-R3 automatic, R4 printed for human review)
-    python verify.py --no-llm   # R1-R3 only, no Bedrock calls
+    python verify.py --no-llm   # R1-R3 only, no model calls
 """
 import sys
 

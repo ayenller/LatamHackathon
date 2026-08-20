@@ -1,0 +1,9 @@
+# TiDB connection — always needed.
+pymysql>=1.1
+
+# Answering model: the two providers are alternatives and each is imported
+# lazily, so installing both is harmless and only the one matching
+# LLM_PROVIDER is ever loaded. Drop the line you do not use if you prefer.
+boto3>=1.34                 # LLM_PROVIDER=bedrock
+google-genai>=2.19          # LLM_PROVIDER=gemini — 2.19 is the floor for the
+                            # Gemini 3 thinking_level config that config.py passes.
