@@ -157,46 +157,76 @@ You register your own **TiDB Cloud Starter** cluster — it is free and takes ab
 
 ```
 projects/
-├── latam-hackathon-001/
-│   ├── README.md        # project description — required
-│   ├── .env.example     # variable names only, never values
-│   ├── src/             # your source code
-│   └── docs/            # optional
+├── latam-hackathon-001/   ← empty until your team submits
 ├── latam-hackathon-002/
 ├── ...
 └── latam-hackathon-010/
 ```
 
-One directory per team. **Your directory name matches your AWS username, your EC2 `Participant` tag, and your S3 prefix** — all use the same hyphenated form. Do not rename it.
+One directory per team, empty by design. **Your directory name matches your AWS username, your EC2 `Participant` tag, and your S3 prefix** — all use the same hyphenated form. Do not rename it.
 
 ---
 
 ## How to Submit
 
-You do **not** have write access here. Fork → branch → PR.
+Two phases. **Build in your own repository. Submit here at the end.**
+
+### Phase 1 — During the sprint: your own public repo
+
+Work in a repository you own. Do not wait on anyone's review and do not open PRs here mid-build.
+
+- Create it **public** — Part B of the score is verified by AI reading your public repo.
+- Commit your `.kiro/` specs.
+- Write a `SUBMISSION.md` at its root: what you built, how to run it, what you would do next.
+- Push before the deadline, and check the repo is actually public.
+
+This is where you move fast for 2h30.
+
+### Phase 2 — At the end: submit your work here
+
+Once the project is done, copy its final state into your team directory in **this** repository and open a Pull Request.
 
 ```bash
+# 1. Fork this repository on GitHub, then clone your fork
 git clone https://github.com/<your-username>/LatamHackathon.git
 cd LatamHackathon
 git checkout -b latam-hackathon-0XX
-# work only inside projects/latam-hackathon-0XX/
+
+# 2. Copy your finished project in — exclude .git, .env and any secret
+rsync -a --exclude '.git' --exclude '.env' --exclude 'venv' \
+      ~/your-project/ projects/latam-hackathon-0XX/
+
+# 3. Commit and push to your fork
 git add projects/latam-hackathon-0XX/
 git commit -m "latam-hackathon-0XX: <what you built>"
 git push origin latam-hackathon-0XX
 ```
 
-Then open a Pull Request against `main`.
+Then open a Pull Request against `main`. Organizers merge it.
+
+### What your directory must contain
+
+```
+projects/latam-hackathon-0XX/
+├── README.md        # what it is, architecture, screenshots, how to run
+├── SUBMISSION.md    # the same file as in your own repo
+├── src/             # your source code
+├── .kiro/           # your Kiro specs, if you used Kiro
+└── docs/            # optional
+```
+
+Link back to your own public repository from your `README.md` — judges look at both.
 
 ### PR Rules
 
 | Rule | Why |
 |---|---|
 | Touch only your own `projects/latam-hackathon-0XX/` directory | GitHub write access cannot be scoped per-directory, so this is enforced by review |
-| `README.md` in your directory must be filled in | It is how judges understand your project |
-| No secrets in any file, screenshot, or commit | Push Protection will block the push |
+| Do not copy your project's `.git` directory in | Submit the files, not the repository |
+| No secrets in any file, screenshot or commit | Push Protection will block the push |
 | Keep the directory name unchanged | Permission policies match on it |
 
-PRs that modify another team's files, repository configuration, or CI will be closed.
+PRs that modify another team's directory, repository configuration or CI will be closed.
 
 ---
 
