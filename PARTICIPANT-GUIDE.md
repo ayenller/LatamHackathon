@@ -140,37 +140,50 @@ This repository has **Secret Scanning and Push Protection enabled**. A push cont
 
 ## 8. Submitting Your Work
 
-You do **not** have write access to this repository. Fork it, work in your fork, and open a Pull Request.
+Two phases. **Build in your own repository during the sprint. Submit here at the end.**
+
+### Phase 1 — during the sprint
+
+Work in a **public** repository you own. Move fast, do not wait on reviews.
+
+- Commit your `.kiro/` specs.
+- Write a `SUBMISSION.md` at the root: what you built, how to run it, what is next.
+- Push before the deadline and confirm the repo is actually public — Part B of the score is verified by AI reading it.
+
+### Phase 2 — at the end
+
+Copy your finished project into your team directory in the main repository and open a Pull Request. You do **not** have write access there, so fork it.
 
 ```bash
-# 1. Fork on GitHub, then clone your fork
+# 1. Fork https://github.com/ayenller/LatamHackathon, then clone your fork
 git clone https://github.com/<your-username>/LatamHackathon.git
 cd LatamHackathon
-
-# 2. Branch
 git checkout -b latam-hackathon-0XX
 
-# 3. Work ONLY inside your own directory
-cd projects/latam-hackathon-0XX/
+# 2. Copy your project in — leave out .git, .env and anything secret
+rsync -a --exclude '.git' --exclude '.env' --exclude 'venv' \
+      ~/your-project/ projects/latam-hackathon-0XX/
 
-# 4. Commit and push to your fork
+# 3. Push to your fork, then open a PR against main
 git add projects/latam-hackathon-0XX/
 git commit -m "latam-hackathon-0XX: <what you built>"
 git push origin latam-hackathon-0XX
-
-# 5. Open a Pull Request against the main repo
 ```
 
-**PRs that touch files outside your own `projects/latam-hackathon-0XX/` directory will be rejected.**
-
-Required in your directory:
+Your directory starts empty. Fill it with:
 
 ```
 projects/latam-hackathon-0XX/
-├── README.md        # project description, architecture, screenshots, how to run
+├── README.md        # description, architecture, screenshots, how to run
+├── SUBMISSION.md    # same file as in your own repo
 ├── src/             # source code
+├── .kiro/           # Kiro specs, if you used Kiro
 └── docs/            # optional
 ```
+
+Link back to your own public repo from the `README.md`.
+
+**PRs that touch files outside your own directory will be rejected.** Never copy your project's `.git` directory in — submit the files, not the repository.
 
 ---
 
