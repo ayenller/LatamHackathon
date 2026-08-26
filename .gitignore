@@ -1,0 +1,51 @@
+# ── Hackathon 主仓库：默认忽略本地工作内容 ────────────────
+# 本地文件一律保留，只是不进版本库。要提交某项时从这里删掉对应行。
+
+# 主办方运维资料（含凭据，绝对不能提交）
+aws-hackathon/
+AWS 资源与权限方案.md
+
+# 本地 demo / 草稿
+minimal/
+minimal-en/
+Section9_Semantic_Flight_Search.md
+Section9_语义航班检索_中文版.md
+Guia_TiDB_Bedrock.docx
+Guia_TiDB_Bedrock.docx.pdf
+build_embeddings.py
+config.py
+main.py
+parse.py
+resolve.py
+search.py
+requirements.txt
+.env.example
+
+# ── 通用 ────────────────────────────────────────────────
+.env
+.env.*
+# 但小组目录里的模板要提交（只含变量名，无值）
+!projects/**/.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# 凭据类，任何目录下都不允许
+*.pem
+*.key
+*credentials*.csv
+*secret*
+aws_credentials
+
+# 数据集
+hackathon_airportdb.sql
+hackathon_airportdb.sql.gz
+*.sql
+*.sql.gz
+*.dump
