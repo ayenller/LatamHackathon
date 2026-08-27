@@ -83,7 +83,9 @@ Assign roles instead of splitting the codebase: **data · AI · interface · pit
 
 ### AWS EC2
 
-One instance per team, in **sa-east-1 (São Paulo)**, tagged with your team name. Connect via Session Manager — see the [participant guide](PARTICIPANT-GUIDE.md).
+One instance per team, in **sa-east-1 (São Paulo)**, tagged with your team name. Connect via Session Manager — no SSH key, no open port 22. See the [participant guide](PARTICIPANT-GUIDE.md).
+
+**Ports 8000–8999 and 3000 are open inbound**, so a web app you run there is reachable at `http://<instance-public-ip>:8501`. Bind to `0.0.0.0`, not `127.0.0.1`. The public IP changes on every stop/start, and anything you serve is public — no auth, no TLS.
 
 Deploying there is worth points, but do not let it eat your submission window. Running locally and recording the demo beats missing the deadline.
 
