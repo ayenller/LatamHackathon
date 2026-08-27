@@ -52,6 +52,48 @@ Host hackathon
   ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p --region sa-east-1"
 ```
 
+### Deploying
+
+Code moves in through GitHub, not from your laptop — you have no AWS access keys, and that is deliberate.
+
+```bash
+# 1. Tools — neither git nor pip is preinstalled
+sudo dnf install -y git python3-pip
+
+# 2. The system Python is 3.9, which boto3 no longer supports. Install 3.11:
+sudo dnf install -y python3.11 python3.11-pip
+
+# 3. Your code
+git clone https://github.com/<you>/<your-repo>.git
+cd <your-repo>
+python3.11 -m pip install -r requirements.txt
+
+# 4. Your keys — on the instance only, never committed
+cat > .env <<'ENV'
+AWS_BEARER_TOKEN_BEDROCK=<your Bedrock key>
+AWS_REGION=ap-southeast-1
+TIDB_HOST=gateway01.<region>.prod.aws.tidbcloud.com
+TIDB_PASSWORD=<your password>
+ENV
+chmod 600 .env
+
+# 5. Run it so it survives the session closing
+setsid nohup python3.11 src/main.py > app.log 2>&1 < /dev/null &
+```
+
+Use a heredoc for `.env` rather than pasting into `vi` — the browser shell mangles indentation.
+
+Things that will bite you otherwise:
+
+| | |
+|---|---|
+| **913 MB RAM**, no swap | `t3.micro`. pandas is fine; torch or large in-memory embeddings will be killed by the OOM reaper. Process in batches. |
+| **Session closes → process dies** | Use `setsid nohup ... &` as above, or `tmux`. |
+| **20-minute idle timeout** | The browser shell disconnects when idle. Your backgrounded process keeps running. |
+| **`git push` fails from here** | Outbound SSH is closed. Push from your laptop, `git pull` here. |
+| **Public IP changes on restart** | No Elastic IP. Re-check it in the console after every stop/start. |
+
+
 ---
 
 ## 3. S3
@@ -144,18 +186,37 @@ Restrict the cluster's **IP Access List** to your EC2's public IP and your lapto
 
 ## 6. Network Limits
 
-Your instance's security group has **no inbound rules**. Outbound is restricted to three ports:
+### Inbound — your app is reachable
 
 | Port | For |
 |---|---|
-| 443 | HTTPS — GitHub, pip/npm, Bedrock, TiDB Cloud console |
+| 8000–8999 | Your web app — Streamlit (8501), FastAPI/Django (8000), anything in the range |
+| 3000 | React / Next.js dev server |
+
+Open to the whole internet, so you can share a link with judges and teammates. Start your app bound to **`0.0.0.0`**, not `127.0.0.1`, or nothing outside the instance can reach it:
+
+```bash
+streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Then open `http://<your-instance-public-ip>:8501` in a browser. Find the IP in the EC2 console under **Public IPv4 address**.
+
+> ⚠️ **The public IP changes every time the instance stops and starts.** Re-check it after any restart.
+
+> ⚠️ **Anything you serve here is public.** No auth, no TLS, and scanners find open ports within hours. Do not put credentials, personal data or anything you would not publish behind these ports.
+
+**SSH (22) and RDP (3389) stay closed** and will not be opened. Use Session Manager.
+
+### Outbound — three ports only
+
+| Port | For |
+|---|---|
+| 443 | HTTPS — GitHub, pip/npm, Bedrock, TiDB Cloud |
 | 80 | HTTP — package repositories |
 | 4000 | TiDB Cloud public endpoint |
 
-Everything else is blocked. Two consequences worth knowing before you hit them:
-
-- **Outbound SSH (22) is closed**, so `git push` over `git@github.com:...` will not work from the instance. Use HTTPS, or better: develop and push from your laptop and only `git pull` on the instance.
-- **Nothing can reach your instance from the internet.** A web UI you start there is not viewable from outside. Run the UI locally for your demo and use the instance for data processing and background jobs.
+Everything else is blocked. One consequence worth knowing: **outbound SSH is closed**, so `git push` over `git@github.com:...` will not work from the instance. Develop and push from your laptop, and `git pull` on the instance.
 
 ---
 
