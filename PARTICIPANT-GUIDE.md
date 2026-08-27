@@ -102,7 +102,39 @@ Signing out and back in will **not** change any of this. Ask an organizer if you
 
 ---
 
-## 4. TiDB Cloud
+## 4. Amazon Bedrock
+
+Your key is issued for **ap-southeast-1 (Singapore)**, not São Paulo. It will not authenticate against any other region.
+
+Put it in your config file — never in a commit, a screenshot or a Dockerfile:
+
+```bash
+# .env  —  keep it git-ignored
+AWS_BEARER_TOKEN_BEDROCK=<the key handed to you on site>
+AWS_REGION=ap-southeast-1
+```
+
+```python
+bedrock = boto3.client("bedrock-runtime", region_name="ap-southeast-1")
+```
+
+`boto3` reads the bearer token straight from the environment, so you do not need AWS credentials on the machine for this. Requires `boto3 >= 1.39`.
+
+Available on-demand models:
+
+| Purpose | Model ID |
+|---|---|
+| Text | `anthropic.claude-3-5-sonnet-20240620-v1:0` |
+| Text (faster) | `anthropic.claude-3-haiku-20240307-v1:0` |
+| Embeddings | `cohere.embed-english-v3` · `cohere.embed-multilingual-v3` — 1024 dims |
+
+`amazon.titan-embed-text-v2:0` and the Mistral models do **not** exist in ap-southeast-1. For Titan embeddings use TiDB's built-in `EMBED_TEXT()` instead — it never touches Bedrock.
+
+You are free to use a different model or a different provider entirely. Explore.
+
+---
+
+## 5. TiDB Cloud
 
 Each participant registers their own **TiDB Cloud Starter** cluster and connects over the public endpoint with TLS.
 
@@ -110,16 +142,24 @@ Restrict the cluster's **IP Access List** to your EC2's public IP and your lapto
 
 ---
 
-## 5. Network Limits
+## 6. Network Limits
 
-Your instance's security group has **no inbound rules** and allows outbound **HTTPS 443 only**.
+Your instance's security group has **no inbound rules**. Outbound is restricted to three ports:
 
-- ✅ HTTPS to GitHub, pip/npm registries, model APIs, TiDB public endpoint
-- ❌ Plain HTTP (port 80) times out. If `dnf` fails, switch to an HTTPS mirror or ask an organizer to open port 80.
+| Port | For |
+|---|---|
+| 443 | HTTPS — GitHub, pip/npm, Bedrock, TiDB Cloud console |
+| 80 | HTTP — package repositories |
+| 4000 | TiDB Cloud public endpoint |
+
+Everything else is blocked. Two consequences worth knowing before you hit them:
+
+- **Outbound SSH (22) is closed**, so `git push` over `git@github.com:...` will not work from the instance. Use HTTPS, or better: develop and push from your laptop and only `git pull` on the instance.
+- **Nothing can reach your instance from the internet.** A web UI you start there is not viewable from outside. Run the UI locally for your demo and use the instance for data processing and background jobs.
 
 ---
 
-## 6. What You Do Not Have
+## 7. What You Do Not Have
 
 Launching or terminating EC2, modifying security groups or VPC, managing any IAM user or policy, granting yourself permissions, reading Secrets Manager, and touching another participant's EC2 or S3 folder.
 
@@ -127,7 +167,7 @@ Need something else? Ask an organizer. Do not attempt to work around the limits 
 
 ---
 
-## 7. API Key Discipline
+## 8. API Key Discipline
 
 - Keys are handed out **on site**, one per participant. Never share a key.
 - Store keys in the `.env` file on your EC2 only.
@@ -138,7 +178,7 @@ This repository has **Secret Scanning and Push Protection enabled**. A push cont
 
 ---
 
-## 8. Submitting Your Work
+## 9. Submitting Your Work
 
 Two phases. **Build in your own repository during the sprint. Submit here at the end.**
 
@@ -187,7 +227,7 @@ Link back to your own public repo from the `README.md`.
 
 ---
 
-## 9. Cleanup — 2026-09-05
+## 10. Cleanup — 2026-09-05
 
 After the event, all of the following are permanently deleted: your AWS account, your EC2 instance and its disk, your S3 folder and its contents, TiDB clusters, and every API key.
 
