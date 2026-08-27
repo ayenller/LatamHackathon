@@ -89,26 +89,56 @@ Deploying there is worth points, but do not let it eat your submission window. R
 
 ### Amazon Bedrock
 
-**Available in sa-east-1** — Amazon Nova is **not** available in São Paulo:
+Your Bedrock API key is issued for **ap-southeast-1 (Singapore)** — not São Paulo. Point your client at that region; the key will not work anywhere else.
+
+Available on-demand models there:
 
 | Purpose | Model ID |
 |---|---|
-| Text | `anthropic.claude-3-haiku-20240307-v1:0` |
-| Text (alternative) | `mistral.mixtral-8x7b-instruct-v0:1` |
-| Embeddings | `amazon.titan-embed-text-v2:0` — 1024 dimensions |
+| Text | `anthropic.claude-3-5-sonnet-20240620-v1:0` |
+| Text (faster, cheaper) | `anthropic.claude-3-haiku-20240307-v1:0` |
+| Embeddings | `cohere.embed-english-v3` — 1024 dimensions |
+| Embeddings (multilingual) | `cohere.embed-multilingual-v3` — 1024 dimensions |
+
+`amazon.titan-embed-text-v2:0` and the Mistral models are **not** available in ap-southeast-1. If you want Titan embeddings, use TiDB's built-in `EMBED_TEXT()` instead — it does not go through Bedrock at all.
+
+### Using the key
+
+Put it in your config file, never in a commit:
+
+```bash
+# .env  —  git-ignored
+AWS_BEARER_TOKEN_BEDROCK=<the key handed to you on site>
+AWS_REGION=ap-southeast-1
+```
 
 ```python
-import json, boto3
+import json, os, boto3
+from dotenv import load_dotenv
 
-bedrock = boto3.client("bedrock-runtime", region_name="sa-east-1")
+load_dotenv()  # exports AWS_BEARER_TOKEN_BEDROCK into the environment
+
+bedrock = boto3.client("bedrock-runtime", region_name="ap-southeast-1")
 
 def ask(prompt: str) -> str:
     resp = bedrock.invoke_model(
-        modelId="anthropic.claude-3-haiku-20240307-v1:0",
-        body=json.dumps({...}),
+        modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        body=json.dumps({
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}],
+        }),
     )
     return json.loads(resp["body"].read())["content"][0]["text"]
 ```
+
+`boto3` picks the bearer token up from the environment automatically — you do not need AWS credentials on the machine for this. Requires `boto3 >= 1.39`; run `pip install -U boto3` if `invoke_model` returns an auth error.
+
+One key per group. Do not share it between groups, and do not commit it.
+
+**A note on latency:** Singapore is a long way from São Paulo — expect a few hundred milliseconds per round trip. Fine for a demo, worth knowing if you are chaining many calls in a loop.
+
+**Nothing here is prescriptive.** Use a different model, a different provider, or no LLM API at all if your idea is better served that way. Explore.
 
 ### TiDB vector search — the short way
 
@@ -142,7 +172,7 @@ Nothing below is handed out in advance. Collect it from an organizer at the venu
 | Item | Per | Notes |
 |---|---|---|
 | **AWS account** | one per group | IAM user `latam-hackathon-0XX`. Temporary password, changed on first sign-in, **MFA required**. |
-| **Bedrock API key** | one per group | Issued after MFA is confirmed. One key per group — never shared between groups. |
+| **Bedrock API key** | one per group | Valid in **ap-southeast-1**, not sa-east-1. Issued after MFA is confirmed. One key per group — never shared. |
 | **EC2 instance** | one per group | sa-east-1, pre-tagged to your group. |
 | **S3 folder** | one per group | `s3://tidb-latam-hackathon-2026-048364544505/latam-hackathon-0XX/` |
 | **airportdb dataset** | one per group | Import into your own TiDB Cloud Starter cluster. |
@@ -249,7 +279,7 @@ PRs that modify another team's directory, repository configuration or CI will be
 | TiDB Cloud | <https://tidbcloud.com> — register your own Starter cluster |
 | TiDB docs | <https://docs.pingcap.com/tidbcloud/> |
 | Kiro | <https://kiro.dev> |
-| Bedrock in sa-east-1 | Claude 3 Haiku · Mixtral 8x7B · Titan Embeddings V2 |
+| Bedrock region | `ap-southeast-1` — Claude 3.5 Sonnet · Claude 3 Haiku · Cohere Embed v3 |
 | Event brief | [Ask the Airport.pdf](Ask%20the%20Airport.pdf) |
 | Session Manager plugin | <https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html> |
 
