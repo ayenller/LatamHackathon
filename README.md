@@ -40,13 +40,21 @@ Teams that find a real problem in this data and solve it well will score higher 
 
 | | |
 |---|---|
-| **Window** | 2015-06-02 to 2015-06-08 (one week) |
+| **Window** | 2015-06-02 to 2015-06-09 |
 | **Scope** | All flights touching a Brazilian airport, plus a global sample for variety |
-| **Size** | ~5,000 flights · ~500K bookings · weather included |
-| **Tables** | `airline` `airplane` `airport` `booking` `flight` `flightschedule` `passenger` `weatherdata` and more |
-| **Import time** | Small enough to load in minutes |
+| **Size** | 5,191 flights · 617,062 bookings · 36,095 passengers · weather included |
+| **Tables** | 12 — `airline` `airplane` `airplane_type` `airport` `airport_geo` `booking` `employee` `flight` `flightschedule` `passenger` `passengerdetails` `weatherdata` |
+| **Download** | <https://hackaton-tidb.s3.sa-east-1.amazonaws.com/dumps/hackathon_airportdb.sql.gz> — 10 MB gzipped, public |
 
-The dataset dump is handed out on site. If the venue wifi makes the import crawl, use **TiDB Cloud's import-from-S3** in the console instead — the cluster fetches it directly.
+```bash
+curl -O https://hackaton-tidb.s3.sa-east-1.amazonaws.com/dumps/hackathon_airportdb.sql.gz
+gunzip hackathon_airportdb.sql.gz
+mysql -h <tidb-host> -P 4000 -u <user> -p --ssl-ca=/etc/ssl/cert.pem airportdb < hackathon_airportdb.sql
+```
+
+TLS is required on the TiDB public endpoint. If the venue wifi makes the import crawl, use **TiDB Cloud's import-from-S3** in the console instead — the cluster fetches it server-side.
+
+Row counts above are taken from the dump itself; the event brief's "8 tables, ~500K bookings" understates it.
 
 ### Dig for the problem first
 

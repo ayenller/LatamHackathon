@@ -176,7 +176,67 @@ You are free to use a different model or a different provider entirely. Explore.
 
 ---
 
-## 5. TiDB Cloud
+## 5. The Dataset — `airportdb`
+
+A curated airline database: airports, flights, bookings, passengers and weather, filtered to flights touching Brazil across one week in June 2015. Using it is optional, but it is there because it is **rich in real problems** — delays cascade, connections break, weather disrupts, passengers have histories.
+
+### Download
+
+```bash
+curl -O https://hackaton-tidb.s3.sa-east-1.amazonaws.com/dumps/hackathon_airportdb.sql.gz
+gunzip hackathon_airportdb.sql.gz
+```
+
+10 MB compressed, ~30 MB of SQL. No credentials needed — the link is public.
+
+### Load it into your TiDB cluster
+
+```bash
+mysql -h <your-tidb-host> -P 4000 -u <your-user> -p \
+      --ssl-ca=/etc/ssl/cert.pem \
+      -e "CREATE DATABASE IF NOT EXISTS airportdb"
+
+mysql -h <your-tidb-host> -P 4000 -u <your-user> -p \
+      --ssl-ca=/etc/ssl/cert.pem airportdb < hackathon_airportdb.sql
+```
+
+TLS is required on the public endpoint — without `--ssl-ca` you get an SSL error.
+
+If the venue wifi makes the import crawl, use **TiDB Cloud's import-from-S3** in the console instead. The cluster pulls the file server-side and never touches your connection.
+
+### What is in it
+
+| Table | Rows | What it holds |
+|---|---:|---|
+| `booking` | 617,062 | seat, price, passenger, flight |
+| `airport` / `airport_geo` | 9,854 each | codes, names, city, country, lat/lon |
+| `flightschedule` | 9,881 | the planned timetable, by weekday |
+| `weatherdata` | 9,216 | temp, humidity, pressure, wind, condition |
+| `flight` | 5,191 | actual departures and arrivals |
+| `airplane` | 5,583 | capacity, type, airline |
+| `passenger` / `passengerdetails` | 36,095 each | name, passport, birthdate, address, email |
+| `employee` | 1,000 | staff records |
+| `airline` | 113 | IATA code, name, base airport |
+| `airplane_type` | 342 | aircraft identifiers |
+
+Flights run **2015-06-02 to 2015-06-09**. 12 tables in total.
+
+> The event brief mentions 8 tables and ~500K bookings. The dump actually carries **12 tables and 617,062 bookings** — the numbers above are counted from the file itself.
+
+### Where the interesting questions are
+
+Spend a few minutes querying before you write code. The strong projects come from a pattern someone noticed in the data, not from a feature list.
+
+- `flight` versus `flightschedule` — where does reality diverge from the timetable, and for which routes?
+- `weatherdata` joined to departure times — does weather actually explain the delays, or is something else going on?
+- `booking` per passenger over the week — what does someone's history say about what they would accept as a rebooking?
+- Connection windows: which itineraries break when the inbound leg slips an hour?
+
+`passengerdetails` contains names, addresses and email addresses. It is synthetic data, but treat it as if it were not: do not paste it into a public repo, a screenshot or a prompt log.
+
+---
+
+## 6. TiDB Cloud
 
 Each participant registers their own **TiDB Cloud Starter** cluster and connects over the public endpoint with TLS.
 
@@ -184,7 +244,7 @@ Restrict the cluster's **IP Access List** to your EC2's public IP and your lapto
 
 ---
 
-## 6. Network Limits
+## 7. Network Limits
 
 ### Inbound — your app is reachable
 
@@ -220,7 +280,7 @@ Everything else is blocked. One consequence worth knowing: **outbound SSH is clo
 
 ---
 
-## 7. What You Do Not Have
+## 8. What You Do Not Have
 
 Launching or terminating EC2, modifying security groups or VPC, managing any IAM user or policy, granting yourself permissions, reading Secrets Manager, and touching another participant's EC2 or S3 folder.
 
@@ -228,7 +288,7 @@ Need something else? Ask an organizer. Do not attempt to work around the limits 
 
 ---
 
-## 8. API Key Discipline
+## 9. API Key Discipline
 
 - Keys are handed out **on site**, one per participant. Never share a key.
 - Store keys in the `.env` file on your EC2 only.
@@ -239,7 +299,7 @@ This repository has **Secret Scanning and Push Protection enabled**. A push cont
 
 ---
 
-## 9. Submitting Your Work
+## 10. Submitting Your Work
 
 Two phases. **Build in your own repository during the sprint. Submit here at the end.**
 
@@ -288,7 +348,7 @@ Link back to your own public repo from the `README.md`.
 
 ---
 
-## 10. Cleanup — 2026-09-05
+## 11. Cleanup — 2026-09-05
 
 After the event, all of the following are permanently deleted: your AWS account, your EC2 instance and its disk, your S3 folder and its contents, TiDB clusters, and every API key.
 
