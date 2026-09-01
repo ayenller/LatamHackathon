@@ -2,7 +2,7 @@
 
 Main repository for the TiDB LATAM Hackathon. Build something with **TiDB Cloud**, **AWS**, and an **LLM API**.
 
-**Event ends 2026-09-05.** All AWS accounts, EC2 instances, S3 data, TiDB clusters, and API keys are deleted after that date.
+**When the event ends, everything is torn down.** All AWS accounts, EC2 instances, S3 data, TiDB clusters, and API keys are deleted.
 
 ---
 

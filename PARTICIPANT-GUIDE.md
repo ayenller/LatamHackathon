@@ -2,7 +2,7 @@
 
 > Replace every `latam-hackathon-0XX` below with your own account name.
 
-Event ends **2026-09-05**. All accounts and resources are deleted after that date.
+All accounts and resources are deleted once the event ends.
 
 ---
 
@@ -429,8 +429,8 @@ Link back to your own public repo from the `README.md`.
 
 ---
 
-## 11. Cleanup — 2026-09-05
+## 11. Cleanup
 
-After the event, all of the following are permanently deleted: your AWS account, your EC2 instance and its disk, your S3 folder and its contents, TiDB clusters, and every API key.
+As soon as the event ends, all of the following are permanently deleted: your AWS account, your EC2 instance and its disk, your S3 folder and its contents, TiDB clusters, and every API key.
 
-**Push anything you want to keep to your GitHub fork before that date.**
+**Push anything you want to keep to your GitHub fork before you leave.**
