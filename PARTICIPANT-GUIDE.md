@@ -170,7 +170,7 @@ Available on-demand models:
 | Text (faster) | `anthropic.claude-3-haiku-20240307-v1:0` |
 | Embeddings | `cohere.embed-english-v3` · `cohere.embed-multilingual-v3` — 1024 dims |
 
-`amazon.titan-embed-text-v2:0` and the Mistral models do **not** exist in ap-southeast-1. For Titan embeddings use TiDB's built-in `EMBED_TEXT()` instead — it never touches Bedrock.
+`amazon.titan-embed-text-v2:0` and the Mistral models do **not** exist in ap-southeast-1. For embeddings, prefer TiDB's built-in Auto Embedding (§6) — it never touches Bedrock and needs no key.
 
 You are free to use a different model or a different provider entirely. Explore.
 
@@ -241,6 +241,87 @@ Spend a few minutes querying before you write code. The strong projects come fro
 Each participant registers their own **TiDB Cloud Starter** cluster and connects over the public endpoint with TLS.
 
 Restrict the cluster's **IP Access List** to your EC2's public IP and your laptop's IP. Do not use `0.0.0.0/0`.
+
+### Auto Embedding — TiDB writes the vectors for you
+
+Semantic search normally means writing four steps: call an embedding API from your code, store the vector, embed the incoming question too, then compare. **Auto Embedding deletes all four.** You declare a `VECTOR` column as generated from a text column, and TiDB calls the embedding model itself on every `INSERT` and `UPDATE`. At query time you hand it plain text and it embeds that for you.
+
+No embedding code, no API key, no round trip to Singapore, and it does not spend your Bedrock quota.
+
+> Auto Embedding runs **only on TiDB Cloud Starter hosted on AWS** — exactly the cluster you are registering for this event.
+
+#### Choose a model
+
+| Model string | Dims | Use it when |
+|---|---:|---|
+| `tidbcloud_free/cohere/embed-multilingual-v3` | 1024 | Your data or your users' questions are in **Portuguese or Spanish** — 100+ languages, and it matches *across* them |
+| `tidbcloud_free/amazon/titan-embed-text-v2` | 1024 | English-only content |
+| `tidbcloud_free/cohere/embed-english-v3` | 1024 | English-only; alternative to Titan |
+
+These are hosted by TiDB Cloud: **no API key, no cost** (fair-use limits apply). Jina AI, OpenAI, Gemini, Hugging Face and NVIDIA NIM are available too, and you can bring your own key for models outside the free set.
+
+This is a LatAm event — default to the multilingual model. With it, a question typed in Portuguese finds a note written in English.
+
+#### A working example
+
+```sql
+CREATE TABLE route_notes (
+  id       BIGINT AUTO_RANDOM PRIMARY KEY,
+  note     TEXT,
+  note_vec VECTOR(1024) GENERATED ALWAYS AS (
+             EMBED_TEXT("tidbcloud_free/cohere/embed-multilingual-v3",
+                        note,
+                        '{"input_type": "search_document", "input_type@search": "search_query"}')
+           ) STORED,
+  VECTOR INDEX idx_note_vec ((VEC_COSINE_DISTANCE(note_vec)))
+);
+
+INSERT INTO route_notes (note) VALUES
+  ('Thunderstorms over Guarulhos delayed every evening departure'),
+  ('Voo direto para Frankfurt, sem escalas, saída pela manhã'),
+  ('Conexión de 45 minutos en Lisboa, muy justa si el vuelo se retrasa');
+```
+
+You insert text only. The vector column fills itself.
+
+```sql
+SELECT id, note
+FROM route_notes
+ORDER BY VEC_EMBED_COSINE_DISTANCE(note_vec, 'tight connection risk')
+LIMIT 3;
+```
+
+One asymmetry trips up everyone who skims the docs:
+
+| Where | Which function |
+|---|---|
+| Defining the index | `VEC_COSINE_DISTANCE(col)` — or `VEC_L2_DISTANCE(col)` |
+| Running the query | `VEC_EMBED_COSINE_DISTANCE(col, 'your text')` — only the `VEC_EMBED_` variants accept text |
+
+`EMBED_TEXT()` belongs in the generated-column definition, not in your `ORDER BY`.
+
+#### Putting `airportdb` behind it
+
+Build one searchable sentence per row and let the generated column handle the rest:
+
+```sql
+INSERT INTO route_notes (note)
+SELECT CONCAT_WS(' ', /* the columns worth searching */ ) FROM /* your table */;
+```
+
+Check the column names first — `DESCRIBE airport;`, `DESCRIBE flight;` — they are not what you would guess. Airport and city names, airline names and weather conditions all make good text. IDs and timestamps do not; keep those as ordinary columns and filter on them in `WHERE`.
+
+#### Gotchas
+
+| | |
+|---|---|
+| `VECTOR(n)` must match the model | 1024 for all three models above. A mismatch fails at **insert** time, not at `CREATE TABLE`. |
+| `STORED`, never `VIRTUAL` | A virtual generated column cannot carry a vector index. |
+| Embedding happens on write | Bulk-loading calls the model once per row. Insert in batches and expect it to be slower than a plain load. |
+| Input limits | Titan caps at 8,192 tokens / 50,000 characters per row. Truncate long text yourself. |
+| Free, not unlimited | Hosted models have usage limits. If you hit one, switch models or bring your own key. |
+
+Full documentation: <https://docs.pingcap.com/ai/vector-search-auto-embedding-overview/>
 
 ---
 

@@ -110,7 +110,7 @@ Available on-demand models there:
 | Embeddings | `cohere.embed-english-v3` — 1024 dimensions |
 | Embeddings (multilingual) | `cohere.embed-multilingual-v3` — 1024 dimensions |
 
-`amazon.titan-embed-text-v2:0` and the Mistral models are **not** available in ap-southeast-1. If you want Titan embeddings, use TiDB's built-in `EMBED_TEXT()` instead — it does not go through Bedrock at all.
+`amazon.titan-embed-text-v2:0` and the Mistral models are **not** available in ap-southeast-1. For embeddings, use TiDB Auto Embedding instead (below) — it does not go through Bedrock at all and needs no key.
 
 ### Using the key
 
@@ -150,28 +150,34 @@ One key per group. Do not share it between groups, and do not commit it.
 
 **Nothing here is prescriptive.** Use a different model, a different provider, or no LLM API at all if your idea is better served that way. Explore.
 
-### TiDB vector search — the short way
+### TiDB Auto Embedding — vector search without an embedding API
 
-TiDB can generate the embeddings for you, so you never call an embedding API from your own code:
+TiDB generates the embeddings for you. You never call an embedding API from your own code, and it costs nothing — the hosted models need no API key and do not touch your Bedrock quota.
 
 ```sql
 CREATE TABLE flight_notes (
-  id BIGINT AUTO_RANDOM PRIMARY KEY,
+  id        BIGINT AUTO_RANDOM PRIMARY KEY,
   flight_id INT,
-  note TEXT,
+  note      TEXT,
   embedding VECTOR(1024) GENERATED ALWAYS AS (
-    EMBED_TEXT("tidbcloud_free/amazon/titan-embed-text-v2", note)
-  ) STORED
+              EMBED_TEXT("tidbcloud_free/cohere/embed-multilingual-v3", note)
+            ) STORED,
+  VECTOR INDEX idx_embedding ((VEC_COSINE_DISTANCE(embedding)))
 );
 
+INSERT INTO flight_notes (flight_id, note) VALUES
+  (1, 'Voo direto para Frankfurt, sem escalas');
+
 SELECT flight_id, note FROM flight_notes
-ORDER BY VEC_COSINE_DISTANCE(
-  embedding,
-  EMBED_TEXT("tidbcloud_free/amazon/titan-embed-text-v2", 'nonstop to Germany')
-) LIMIT 5;
+ORDER BY VEC_EMBED_COSINE_DISTANCE(embedding, 'nonstop to Germany')
+LIMIT 5;
 ```
 
-Insert text, get vectors.
+Insert text, get vectors. Ask in Portuguese, match English — the multilingual model spans 100+ languages, which matters here.
+
+Two rules worth memorising: define the index with `VEC_COSINE_DISTANCE()`, but **query** with `VEC_EMBED_COSINE_DISTANCE()`, which takes plain text. And `VECTOR(1024)` must match the model's output dimension.
+
+Auto Embedding requires a **TiDB Cloud Starter cluster on AWS** — the one you are registering. Model list, options and limits: <https://docs.pingcap.com/ai/vector-search-auto-embedding-overview/> · more detail in the [Participant Guide §6](PARTICIPANT-GUIDE.md#6-tidb-cloud).
 
 ---
 
@@ -288,6 +294,7 @@ PRs that modify another team's directory, repository configuration or CI will be
 | Shared S3 bucket | `s3://tidb-latam-hackathon-2026-048364544505/<your-username>/` |
 | TiDB Cloud | <https://tidbcloud.com> — register your own Starter cluster |
 | TiDB docs | <https://docs.pingcap.com/tidbcloud/> |
+| TiDB Auto Embedding | <https://docs.pingcap.com/ai/vector-search-auto-embedding-overview/> — vector search with no embedding API |
 | Kiro | <https://kiro.dev> |
 | Bedrock region | `ap-southeast-1` — Claude 3.5 Sonnet · Claude 3 Haiku · Cohere Embed v3 |
 | Event brief | [Ask the Airport.pdf](Ask%20the%20Airport.pdf) |
