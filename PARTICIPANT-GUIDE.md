@@ -43,6 +43,16 @@ There is **no SSH port open** and no key pair. Use **Session Manager**.
 aws ssm start-session --target <your-instance-id> --region sa-east-1
 ```
 
+Both drop you in as **`ssm-user`**, not `ec2-user`, in `/usr/bin`. Switch before you do anything else:
+
+```bash
+sudo su - ec2-user
+```
+
+`/home/ec2-user` is mode `0700`, so as `ssm-user` a `cd` into it fails with **`Permission denied`** — not "no such directory", which sends people looking for the wrong problem. `ssm-user` has passwordless sudo, so the switch always works.
+
+Everything below assumes you are `ec2-user`. Clone your repo and write your `.env` under `/home/ec2-user`, or the paths in this guide will not match what you see.
+
 **VS Code Remote SSH** over an SSM tunnel — add to `~/.ssh/config`:
 
 ```
